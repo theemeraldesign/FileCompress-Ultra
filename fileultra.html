@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FileCompress Ultra — Client-Side Compression & Conversion Workstation</title>
+
+  <!-- Open Graph / Social Media Meta Tags -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://filecompress-ultra.netlify.app/">
+  <meta property="og:title" content="FileCompress Ultra — Master File Studio">
+  <meta property="og:description" content="High-performance client-side file compression and conversion suite powered by WebAssembly. Process PDFs, images, archives, and media with zero server latency.">
+  <meta property="og:image" content="https://filecompress-ultra.netlify.app/og-image.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+
+  <!-- Twitter Card Meta Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://filecompress-ultra.netlify.app/">
+  <meta name="twitter:title" content="FileCompress Ultra — Master File Studio">
+  <meta name="twitter:description" content="High-performance client-side file compression and conversion suite powered by WebAssembly. Process PDFs, images, archives, and media with zero server latency.">
+  <meta name="twitter:image" content="https://filecompress-ultra.netlify.app/og-image.png">
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Client-Side Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #070b12;
+      --card-bg: rgba(15, 23, 42, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --emerald: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.25);
+      --blue: #3b82f6;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --panel-bg: rgba(30, 41, 59, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background: var(--bg);
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(16, 185, 129, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(59, 130, 246, 0.08) 0%, transparent 40%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px 15px 60px;
+    }
+
+    header {
+      text-align: center;
+      margin: 30px 0 25px;
+      max-width: 800px;
+    }
+
+    .brand-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--emerald);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+
+    header h1 {
+      font-size: 2.6rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, #ffffff 30%, var(--emerald) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 800px;
+    }
+
+    /* Main Card / Dropzone */
+    .app-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 30px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .dropzone {
+      border: 2px dashed rgba(16, 185, 129, 0.4);
+      background: rgba(15, 23, 42, 0.4);
+      border-radius: 18px;
+      padding: 45px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--emerald);
+      background: rgba(16, 185, 129, 0.05);
+      box-shadow: 0 0 30px var(--emerald-glow);
+      transform: translateY(-2px);
+    }
+
+    .dropzone-icon {
+      width: 70px;
+      height: 70px;
+      margin: 0 auto 16px;
+      background: rgba(16, 185, 129, 0.1);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--emerald);
+      font-size: 1.8rem;
+    }
+
+    .dropzone h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .dropzone p {
+      color: var(--text-muted);
+      font-size: 0.88rem;
+    }
+
+    /* Controls Section */
+    .controls-wrapper {
+      display: none;
+      margin-top: 25px;
+      animation: fadeIn 0.4s ease forwards;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .file-badge-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--panel-bg);
+      border: 1px solid var(--card-border);
+      padding: 14px 18px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+    }
+
+    .file-details {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .file-details i {
+      font-size: 1.4rem;
+      color: var(--emerald);
+    }
+
+    .file-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 320px;
+    }
+
+    .file-size-badge {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.05);
+      padding: 4px 10px;
+      border-radius: 8px;
+    }
+
+    .grid-controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .grid-controls { grid-template-columns: 1fr; }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    select, input[type="range"] {
+      width: 100%;
+      background: #0b1120;
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    select:focus {
+      border-color: var(--emerald);
+    }
+
+    .range-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .range-value {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--emerald);
+      min-width: 45px;
+    }
+
+    .btn-submit {
+      width: 100%;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #ffffff;
+      border: none;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 4px 20px var(--emerald-glow);
+      transition: all 0.2s ease;
+    }
+
+    .btn-submit:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Result Stats Card */
+    .stats-card {
+      display: none;
+      margin-top: 20px;
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      border-radius: 16px;
+      padding: 20px;
+      text-align: center;
+      animation: fadeIn 0.4s ease forwards;
+    }
+
+    .stats-title {
+      color: var(--emerald);
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .stats-metrics {
+      display: flex;
+      justify-content: space-around;
+      margin: 15px 0;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+    }
+
+    .metric-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .metric-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .metric-val {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    footer {
+      margin-top: auto;
+      padding-top: 40px;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+
+    footer a {
+      color: var(--emerald);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand-badge"><i class="fa-solid fa-bolt"></i> WebAssembly Power</div>
+    <h1>FileCompress Ultra</h1>
+    <p>Zero-Server Client-Side File Compression & Conversion Suite</p>
+  </header>
+
+  <main class="container">
+    <div class="app-card">
+      
+      <!-- Dropzone Zone -->
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone-icon">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+        </div>
+        <h3>Drag & Drop your file here</h3>
+        <p>Supports Images, PDFs, Archives, and Media Files (Max 2GB local processing)</p>
+        <input type="file" id="fileInput" hidden>
+      </div>
+
+      <!-- Settings Controls -->
+      <div class="controls-wrapper" id="controlsWrapper">
+        <div class="file-badge-bar">
+          <div class="file-details">
+            <i class="fa-solid fa-file-code" id="fileIcon"></i>
+            <div>
+              <div class="file-name" id="fileName">filename.ext</div>
+            </div>
+          </div>
+          <div class="file-size-badge" id="fileSize">0 MB</div>
+        </div>
+
+        <div class="grid-controls">
+          <div class="form-group">
+            <label for="targetMode"><i class="fa-solid fa-gear"></i> Target Operation</label>
+            <select id="targetMode"></select>
+          </div>
+
+          <div class="form-group" id="dimensionGroup">
+            <label for="maxDimension"><i class="fa-solid fa-expand"></i> Max Resolution / Scale</label>
+            <select id="maxDimension">
+              <option value="original">Original Resolution</option>
+              <option value="1920">1080p (1920px max)</option>
+              <option value="1280">720p (1280px max)</option>
+              <option value="854">480p (854px max)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 20px;" id="qualityGroup">
+          <label for="qualityRange">
+            <i class="fa-solid fa-sliders"></i> Quality Target: <span class="range-value" id="qualityValue">80%</span>
+          </label>
+          <div class="range-container">
+            <input type="range" id="qualityRange" min="10" max="100" value="80">
+          </div>
+        </div>
+
+        <button class="btn-submit" id="processBtn">
+          <i class="fa-solid fa-bolt"></i> Process & Download File
+        </button>
+      </div>
+
+      <!-- Results Stats -->
+      <div class="stats-card" id="statsCard">
+        <div class="stats-title">
+          <i class="fa-solid fa-circle-check"></i> Compression Complete!
+        </div>
+        <div class="stats-metrics">
+          <div class="metric-item">
+            <span class="metric-label">Original</span>
+            <span class="metric-val" id="origSizeVal">0 MB</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Compressed</span>
+            <span class="metric-val" id="newSizeVal" style="color: var(--emerald);">0 MB</span>
+          </div>
+          <div class="metric-item">
+            <span class="metric-label">Saved</span>
+            <span class="metric-val" id="savedVal" style="color: #38bdf8;">0%</span>
+          </div>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-muted);" id="speedTimecode">Processed in 0.4s</p>
+      </div>
+
+    </div>
+  </main>
+
+  <footer>
+    <p>FileCompress Ultra • Built by Emerald Designs • Powered by WebAssembly</p>
+  </footer>
+
+  <script>
+    // Configure PDF.js worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const controlsWrapper = document.getElementById('controlsWrapper');
+    const fileName = document.getElementById('fileName');
+    const fileSize = document.getElementById('fileSize');
+    const fileIcon = document.getElementById('fileIcon');
+    const targetMode = document.getElementById('targetMode');
+    const qualityRange = document.getElementById('qualityRange');
+    const qualityValue = document.getElementById('qualityValue');
+    const processBtn = document.getElementById('processBtn');
+    const statsCard = document.getElementById('statsCard');
+    const dimensionGroup = document.getElementById('dimensionGroup');
+    const qualityGroup = document.getElementById('qualityGroup');
+
+    let currentFile = null;
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) {
+        handleFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files.length) {
+        handleFile(e.target.files[0]);
+      }
+    });
+
+    qualityRange.addEventListener('input', (e) => {
+      qualityValue.textContent = `${e.target.value}%`;
+    });
+
+    function handleFile(file) {
+      currentFile = file;
+      fileName.textContent = file.name;
+      fileSize.textContent = formatBytes(file.size);
+
+      targetMode.innerHTML = '';
+      statsCard.style.display = 'none';
+
+      const ext = file.name.split('.').pop().toLowerCase();
+
+      if (['jpg', 'jpeg', 'png', 'webp', 'bmp'].includes(ext)) {
+        fileIcon.className = 'fa-solid fa-file-image';
+        dimensionGroup.style.display = 'flex';
+        qualityGroup.style.display = 'block';
+
+        targetMode.innerHTML = `
+          <option value="compress-webp">Convert & Compress to WebP (Recommended)</option>
+          <option value="compress-jpeg">Convert & Compress to JPG</option>
+          <option value="compress-png">Compress PNG</option>
+        `;
+      } else if (ext === 'pdf') {
+        fileIcon.className = 'fa-solid fa-file-pdf';
+        dimensionGroup.style.display = 'none';
+        qualityGroup.style.display = 'block';
+
+        targetMode.innerHTML = `
+          <option value="pdf-lossless">PDF Structure Deflation (Lossless)</option>
+          <option value="pdf-raster">PDF Page Downsample Rasterizer</option>
+          <option value="pdf-to-zip">Extract Pages to ZIP Images</option>
+        `;
+      } else {
+        fileIcon.className = 'fa-solid fa-file-zipper';
+        dimensionGroup.style.display = 'none';
+        qualityGroup.style.display = 'none';
+
+        targetMode.innerHTML = `
+          <option value="zip-ultra">Pack to Ultra DEFLATE ZIP (Level 9)</option>
+        `;
+      }
+
+      controlsWrapper.style.display = 'block';
+    }
+
+    processBtn.addEventListener('click', async () => {
+      if (!currentFile) return;
+
+      const startTime = performance.now();
+      processBtn.disabled = true;
+      processBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing File...';
+
+      const mode = targetMode.value;
+      const quality = parseInt(qualityRange.value) / 100;
+      const maxDim = document.getElementById('maxDimension').value;
+
+      try {
+        if (mode.startsWith('compress-')) {
+          const targetFormat = mode.split('-')[1];
+          await processImage(currentFile, targetFormat, quality, maxDim, startTime);
+        } else if (mode === 'pdf-lossless') {
+          await processPdfLossless(currentFile, startTime);
+        } else if (mode === 'pdf-raster') {
+          await processPdfRaster(currentFile, quality, startTime);
+        } else if (mode === 'zip-ultra') {
+          await processZip(currentFile, startTime);
+        }
+      } catch (err) {
+        alert('Processing error: ' + err.message);
+      } finally {
+        processBtn.disabled = false;
+        processBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> Process & Download File';
+      }
+    });
+
+    async function processImage(file, format, quality, maxDim, startTime) {
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      await img.decode();
+
+      let width = img.width;
+      let height = img.height;
+
+      if (maxDim !== 'original') {
+        const max = parseInt(maxDim);
+        if (width > max || height > max) {
+          if (width > height) {
+            height = Math.round((height * max) / width);
+            width = max;
+          } else {
+            width = Math.round((width * max) / height);
+            height = max;
+          }
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      const mimeType = format === 'webp' ? 'image/webp' : (format === 'png' ? 'image/png' : 'image/jpeg');
+
+      canvas.toBlob((blob) => {
+        const duration = ((performance.now() - startTime) / 1000).toFixed(2);
+        downloadFile(blob, `compressed_${file.name.split('.')[0]}.${format}`);
+        showStats(file.size, blob.size, duration);
+      }, mimeType, quality);
+    }
+
+    async function processPdfLossless(file, startTime) {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+      const pdfBytes = await pdfDoc.save({ useObjectStreams: true });
+
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const duration = ((performance.now() - startTime) / 1000).toFixed(2);
+
+      downloadFile(blob, `optimized_${file.name}`);
+      showStats(file.size, blob.size, duration);
+    }
+
+    async function processPdfRaster(file, quality, startTime) {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      const newPdf = await PDFLib.PDFDocument.create();
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 1.2 });
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.viewport;
+        const ctx = canvas.getContext('2d');
+
+        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+
+        const imgDataUrl = canvas.toDataURL('image/jpeg', quality);
+        const img = await newPdf.embedJpg(imgDataUrl);
+        const newPage = newPdf.addPage([viewport.width, viewport.height]);
+        newPage.drawImage(img, { x: 0, y: 0, width: viewport.width, height: viewport.height });
+      }
+
+      const pdfBytes = await newPdf.save();
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const duration = ((performance.now() - startTime) / 1000).toFixed(2);
+
+      downloadFile(blob, `compressed_${file.name}`);
+      showStats(file.size, blob.size, duration);
+    }
+
+    async function processZip(file, startTime) {
+      const zip = new JSZip();
+      zip.file(file.name, file);
+      const content = await zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 9 }
+      });
+
+      const duration = ((performance.now() - startTime) / 1000).toFixed(2);
+      downloadFile(content, `${file.name.split('.')[0]}.zip`);
+      showStats(file.size, content.size, duration);
+    }
+
+    function downloadFile(blob, filename) {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+    }
+
+    function showStats(orig, compressed, duration) {
+      const saved = (((orig - compressed) / orig) * 100).toFixed(1);
+      document.getElementById('origSizeVal').textContent = formatBytes(orig);
+      document.getElementById('newSizeVal').textContent = formatBytes(compressed);
+      document.getElementById('savedVal').textContent = `${saved > 0 ? saved : 0}%`;
+      document.getElementById('speedTimecode').textContent = `Processed in ${duration}s`;
+      statsCard.style.display = 'block';
+    }
+
+    function formatBytes(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+  </script>
+</body>
+</html>
